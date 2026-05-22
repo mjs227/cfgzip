@@ -21,7 +21,7 @@ dependencies = [
 xgrammar = ["xgrammar"]
 dev = [
     "pytest",
-    "datasets",
+    "xgrammar",
 ]
 
 [tool.hatch.version]
