@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cfgzip"
+dynamic = ["version"]
+description = "Token vocabulary compression for constrained LLM decoding"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+dependencies = [
+    "torch",
+    "transformers",
+    "interegular",
+    "tqdm",
+    "psutil",
+]
+
+[project.optional-dependencies]
+xgrammar = ["xgrammar"]
+dev = [
+    "pytest",
+    "datasets",
+]
+
+[tool.hatch.version]
+path = "cfgzip/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+include = ["cfgzip/py.typed"]
