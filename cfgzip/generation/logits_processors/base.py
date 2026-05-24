@@ -31,7 +31,11 @@ class BaseProcessor(LogitsProcessor, ABC):
             self._live_batches = [i for i in self._live_batches if input_ids[i, -1] != self.eos_token_id]
 
             if self._live_batches:
-                assert self.accept_tokens(input_ids)
+                if not self.accept_tokens(input_ids):
+                    raise RuntimeError(
+                        "grammar rejected a generated token; the model produced a token that "
+                        "violates the grammar constraints at this step"
+                    )
             else:
                 return scores
         else:

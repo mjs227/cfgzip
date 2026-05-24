@@ -181,6 +181,12 @@ def parse_cfg_str(
         start_symbol: str = 'root'
 ) -> Tuple[Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[int]], Set[str]]:
     terminals, cfg_dict = parse_gbnf(cfg_str)
+    if start_symbol not in cfg_dict:
+        available = sorted(cfg_dict.keys())
+        raise ValueError(
+            f"start symbol {start_symbol!r} not found in grammar; "
+            f"available non-terminals: {available}"
+        )
     cfg_dict.update({'S': cfg_dict.pop(start_symbol)})
     nfa_grammar, preterminals, cfg_out, terminal_labels = {}, {}, {}, set()
 

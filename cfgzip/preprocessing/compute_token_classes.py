@@ -167,7 +167,7 @@ def compute_displacements(
                 tasks.append((tok, t_id))
 
     if num_workers < 1:
-        raise ValueError
+        raise ValueError(f"num_workers must be >= 1, got {num_workers}")
     elif num_workers == 1:
         init_globals(grammar_preterminals_rev, nt_map, transition_map, stack_adj, start_symbol)
         pool = nullcontext()

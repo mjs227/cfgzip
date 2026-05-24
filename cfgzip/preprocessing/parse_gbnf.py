@@ -127,7 +127,7 @@ def _gbnf_to_regex_rec(ebnf_string: str) -> str:
                 i += 1
         return f'({"".join(parts)})'
 
-    raise Exception(f'unrecognized gbnf atom: {ebnf_string!r}')
+    raise ValueError(f'unrecognized gbnf atom: {ebnf_string!r}')
 
 
 # converts a GBNF pattern string (the RHS of a pure-terminal rule) to a Python regex---

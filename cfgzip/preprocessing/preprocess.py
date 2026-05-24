@@ -72,7 +72,11 @@ def preprocess(
     cfg, lex_grammar, preterminals, terminal_labels = parse_cfg_str(grammar_str, start_symbol=start_symbol)
     normed_cfg = normalize_cfg(cfg, lex_grammar, terminal_labels)
 
-    assert hasattr(tokenizer, 'eos_token_id') and isinstance(tokenizer.eos_token_id, int)
+    if not (hasattr(tokenizer, 'eos_token_id') and isinstance(tokenizer.eos_token_id, int)):
+        raise ValueError(
+            "tokenizer must have an integer eos_token_id; "
+            f"got tokenizer.eos_token_id = {getattr(tokenizer, 'eos_token_id', '<missing>')!r}"
+        )
     byte_decoder = getattr(tokenizer, 'byte_decoder', gpt2_byte_decoder())  # fast tokenizers don't expose byte_decoder
     tokens = [
         (token_to_bytes(tokenizer.convert_ids_to_tokens(v), byte_decoder), v) for v in tokenizer.get_vocab().values()

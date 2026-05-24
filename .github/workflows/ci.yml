@@ -23,7 +23,5 @@ jobs:
       - name: Install package with dev dependencies
         run: pip install -e ".[dev]"
 
-      - name: Run e2e tests
-        # test_parse_gbnf.py false-passes until its P4 pytest port lands; run it
-        # anyway so failures are visible, but don't block on it.
-        run: python -m pytest tests/test_e2e.py -v
+      - name: Run tests
+        run: python -m pytest tests/ -v
