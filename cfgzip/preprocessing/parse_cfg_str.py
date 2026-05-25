@@ -205,9 +205,12 @@ def parse_cfg_str(
         nfa_grammar.update(label_grammar)
         preterminals.update(label_preterminals)
 
+    # rewrite each RHS symbol: terminals t -> their preterminal PT[t] (so every non-unary production is
+    # all-non-terminal, per the PT[t] trick above), "" -> ε, non-terminals unchanged. terminal_labels is
+    # keyed by PT[t], so a raw terminal label x is a terminal iff PT[x] is one of those keys.
     for a, beta in sdict_iter(cfg_dict):
         sdict_add(
-            cfg_out, a, tuple(f'PT[{x}]' if x in terminal_labels else ('ε' if x == '""' else x) for x in beta)
+            cfg_out, a, tuple(f'PT[{x}]' if f'PT[{x}]' in terminal_labels else ('ε' if x == '""' else x) for x in beta)
         )
 
     return cfg_out, nfa_grammar, preterminals, terminal_labels
