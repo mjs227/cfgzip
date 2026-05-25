@@ -69,8 +69,8 @@ def preprocess(
     Returns:
         :class:`EquivalenceClassData` with the computed equivalence classes.
     """
-    cfg, lex_grammar, preterminals, terminal_labels = parse_cfg_str(grammar_str, start_symbol=start_symbol)
-    normed_cfg = normalize_cfg(cfg, lex_grammar, terminal_labels)
+    cfg, nfa_grammar, preterminals, terminal_labels = parse_cfg_str(grammar_str, start_symbol=start_symbol)
+    normed_cfg = normalize_cfg(cfg, nfa_grammar, terminal_labels)
 
     if not (hasattr(tokenizer, 'eos_token_id') and isinstance(tokenizer.eos_token_id, int)):
         raise ValueError(

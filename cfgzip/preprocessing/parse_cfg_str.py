@@ -176,23 +176,30 @@ def regex_to_gnf_cfg(label: str, regex: str) -> Tuple[Dict[str, Set[Tuple[str, .
     return cfg, preterminals
 
 
+# exposed function of this file
+# note (not sure where else to put this): the PT[t] thing is a trick---for each terminal t, we add a preterminal
+# PT[t] with PT[t] -> t. this way, all non-unary productions are of the form X -> Y_1 ... Y_n, where all Y_1 ... Y_n
+# are non-terminals. all Y_1's will get replaced during GNF-ification, Y_2 thru Y_n remain as start symbols for
+# NFA sub-grammars
 def parse_cfg_str(
         cfg_str: str,
         start_symbol: str = 'root'
-) -> Tuple[Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[int]], Set[str]]:
-    terminals, cfg_dict = parse_gbnf(cfg_str)
-    if start_symbol not in cfg_dict:
+) -> Tuple[Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[Tuple[str, ...]]], Dict[str, Set[int]], Dict[str, str]]:
+    terminals, cfg_dict = parse_gbnf(cfg_str)  # parse the GBNF grammar
+
+    if start_symbol not in cfg_dict:  # TODO: more rigorous checks
         available = sorted(cfg_dict.keys())
         raise ValueError(
             f"start symbol {start_symbol!r} not found in grammar; "
             f"available non-terminals: {available}"
         )
-    cfg_dict.update({'S': cfg_dict.pop(start_symbol)})
-    nfa_grammar, preterminals, cfg_out, terminal_labels = {}, {}, {}, set()
+
+    cfg_dict.update({'S': cfg_dict.pop(start_symbol)})  # replace start symbol with 'S'
+    nfa_grammar, preterminals, cfg_out, terminal_labels = {}, {}, {}, {}
 
     for t_label, t_regex in terminals.items():
         cfg_out.update({f'PT[{t_label}]': {(t_label,)}})
-        terminal_labels.add(t_label)
+        terminal_labels.update({f'PT[{t_label}]': t_label})
 
         label_grammar, label_preterminals = regex_to_gnf_cfg(t_label, t_regex)
         nfa_grammar.update(label_grammar)
