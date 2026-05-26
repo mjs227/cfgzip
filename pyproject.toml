@@ -28,4 +28,4 @@ dev = [
 path = "cfgzip/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-include = ["cfgzip/py.typed"]
+packages = ["cfgzip"]

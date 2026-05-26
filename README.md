@@ -47,10 +47,15 @@ from transformers import AutoTokenizer
 from cfgzip import preprocess
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
-grammar = "root ::= [a-z]+"          # GBNF / CFG string
+grammar = """\
+root   ::= expr
+expr   ::= term (("+" | "-") term)*
+term   ::= factor (("*" | "/") factor)*
+factor ::= [0-9]+ | "(" expr ")"
+"""
 
 eq = preprocess(grammar, tokenizer, num_workers=4)
-eq.save("grammars/lowercase")
+eq.save("grammars/arithmetic")
 ```
 
 ### 2. Online — load and generate
@@ -66,10 +71,10 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2")
 model = AutoModelForCausalLM.from_pretrained("gpt2")
 
 processor = XgrammarProcessor.auto_pipeline(
-    "grammars/lowercase", tokenizer, grammar, device=model.device
+    "grammars/arithmetic", tokenizer, grammar, device=model.device
 )
 
-inputs = tokenizer("the password is: ", return_tensors="pt").to(model.device)
+inputs = tokenizer("Calculator: ", return_tensors="pt").to(model.device)
 out = model.generate(
     **inputs,
     max_new_tokens=16,
@@ -92,7 +97,7 @@ compilation:
 from cfgzip import XgrammarProcessor
 
 mt, compiled = XgrammarProcessor.load_and_compile(
-    "grammars/lowercase", tokenizer, grammar, device=model.device
+    "grammars/arithmetic", tokenizer, grammar, device=model.device
 )
 
 for batch in batches:
