@@ -119,10 +119,23 @@ processor = XgrammarProcessor.auto_pipeline(
 output = model.generate(**model_input, logits_processor=LogitsProcessorList([processor]))
 ```
 
+## Grammar format
+
+Grammars are written in **GBNF** (GGML BNF) — the grammar notation used by 
+[llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) and XGrammar2. The same grammar 
+string drives both the offline `preprocess` step and online generation; see the linked guide for the full syntax.
+
+Two CFGzip-specific constraints:
+
+- CFGzip parses **core GBNF**; a few advanced constructs (e.g. `{m,n}` repetition counts) aren't supported yet.
+- The start rule must be named `root` (or pass `start_symbol=...` to `preprocess`), and the start symbol may **not** 
+  appear in any rule body — keep the recursion on an inner non-terminal, as in the `root ::= expr` quickstart grammar 
+  above.
+
 ## Scope & limitations
 
 - **Engine backend:** v0.1.0 supports **XGrammar2 only**. `BaseProcessor` defines the contract for adding support for additional engines. We plan to support llguidance and transformers-cfg in later versions.
-- **CFG notation:**: similarly, `preprocess()` only supports the GBNF grammar specification notation used by XGrammar2. Support for additional specification notations (e.g. Lark) is planned alongside support for decoding engines that use them.
+- **CFG notation:** similarly, `preprocess()` only supports the GBNF grammar specification notation used by XGrammar2. Support for additional specification notations (e.g. Lark) is planned alongside support for decoding engines that use them.
 
 ## Public API
 
@@ -141,4 +154,14 @@ pip-installable module, including writing tests, docstrings, and portions of thi
 
 ## Citation
 
-Paper under review — citation coming soon.
+If you use CFGzip in your research, please cite:
+
+```bibtex
+@article{TODO_cite_key,
+  title   = {Accelerating Constrained Decoding with Token Space Compression},
+  author  = {Sullivan, Michael and Koller, Alexander},
+  journal = {TODO: venue or arXiv preprint},
+  year    = {2026},
+  url     = {TODO: url}
+}
+```

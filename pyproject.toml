@@ -6,9 +6,10 @@ build-backend = "hatchling.build"
 name = "cfgzip"
 dynamic = ["version"]
 description = "Token vocabulary compression for constrained LLM decoding"
-readme = "README.md"
+readme = "README-pypi.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = [
     "torch",
     "transformers",
@@ -23,6 +24,10 @@ dev = [
     "pytest",
     "xgrammar",
 ]
+
+[project.urls]
+Homepage = "https://github.com/mjs227/cfgzip"
+Repository = "https://github.com/mjs227/cfgzip"
 
 [tool.hatch.version]
 path = "cfgzip/__init__.py"
