@@ -105,19 +105,8 @@ for batch in batches:
     # ... do something
 ```
 
-### Auto-pipeline
-
 `auto_pipeline` is just `load_and_compile` + `from_compiled`; use the split form above whenever you generate more than 
 once with the same grammar.
-
-```python
-from cfgzip import XgrammarProcessor
-
-processor = XgrammarProcessor.auto_pipeline(
-    'cfgzip_data/arithmetic', tokenizer, grammar, device=model.device
-)
-output = model.generate(**model_input, logits_processor=LogitsProcessorList([processor]))
-```
 
 ## Grammar format
 
@@ -157,11 +146,11 @@ pip-installable module, including writing tests, docstrings, and portions of thi
 If you use CFGzip in your research, please cite:
 
 ```bibtex
-@article{TODO_cite_key,
+@article{sullivan2026accelerating,
   title   = {Accelerating Constrained Decoding with Token Space Compression},
   author  = {Sullivan, Michael and Koller, Alexander},
-  journal = {TODO: venue or arXiv preprint},
+  journal = {arXiv preprint arXiv:2605.29986},
   year    = {2026},
-  url     = {TODO: url}
+  url     = {https://arxiv.org/abs/2605.29986}
 }
 ```
