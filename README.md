@@ -19,7 +19,7 @@ shrinks the per-step search space from 100-200k tokens to (typically) 1-3k equiv
 `MaskTranslator` losslessly decompresses that class-level mask back to the full token vocabulary at each generation 
 step.
 
-See [our paper](#citation) for a description of the compression algorithm and correctness proofs.
+See [our paper](https://arxiv.org/abs/2605.29986) for a description of the compression algorithm and correctness proofs.
 
 ## When to use it
 
