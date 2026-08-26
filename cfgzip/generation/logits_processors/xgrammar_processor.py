@@ -28,7 +28,6 @@ def xgr_check(func):
     return wrapped
 
 
-
 class XgrammarProcessor(BaseProcessor):
     """XGrammar-backed constrained decoding processor using cfgzip compression.
 
@@ -69,18 +68,20 @@ class XgrammarProcessor(BaseProcessor):
     ):
         super(XgrammarProcessor, self).__init__(eos_token_id, mask_translator)
         self.bitmask = xgr.allocate_token_bitmask(mask_translator.batch_size, mask_translator.n_classes)
-        self.batch_matcher, self.matchers = batch_matcher, matchers
+        self.batch_matcher, self.matchers, self._live_matchers = batch_matcher, matchers, list(matchers)
 
     def update_class_mask_inplace(self) -> None:
-        self.batch_matcher.batch_fill_next_token_bitmask(self.matchers, self.bitmask, indices=self._live_batches)
+        self.batch_matcher.batch_fill_next_token_bitmask(self._live_matchers, self.bitmask, indices=self._live_batch_idxs)
         xgr.apply_token_bitmask_inplace(
-            self.mask_translator.class_mask, self.bitmask.to(self.mask_translator.device), indices=self._live_batches
+            self.mask_translator.class_mask, self.bitmask.to(self.mask_translator.device), indices=self._live_batch_idxs
         )
 
     def accept_tokens(self, input_ids: torch.LongTensor) -> bool:
+        self._live_matchers = [self.matchers[i] for i in self._live_batch_idxs]
+
         return all(self.batch_matcher.batch_accept_token(
-            [self.matchers[i] for i in self._live_batches],
-            self.mask_translator.token_classes[input_ids[self._live_batches, -1]].flatten().tolist()
+            self._live_matchers,
+            self.mask_translator.token_classes[input_ids[self._live_batch_idxs, -1]].flatten().tolist()
         ))
 
     @classmethod

@@ -64,6 +64,6 @@ class MaskTranslator:
             mask_value: Value written to masked positions. Defaults to ``-inf``.
         """
         indices = list(range(self.batch_size)) if indices is None else indices
-        logits[indices, :] = torch.where(self.class_mask[indices, self.token_classes] == 1.0, logits, mask_value)
-        logits[indices, self.invalid_tokens] = mask_value
+        logits[indices, :] = torch.where(self.class_mask[indices][:, self.token_classes] == 1.0, logits[indices], mask_value)
+        logits[:, self.invalid_tokens] = mask_value
         self.class_mask[:, :] = 1.0

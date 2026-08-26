@@ -131,6 +131,28 @@ def _make_cfgzip_proc(grammar: str, tokenizer, eq_data: EquivalenceClassData):
     return proc, mt
 
 
+def _make_cfgzip_proc_batch(grammar: str, tokenizer, eq_data: EquivalenceClassData, batch_size: int):
+    mt = MaskTranslator(eq_data, batch_size=batch_size)
+    stop_cls = sorted(set(eq_data.token_classes[[tokenizer.eos_token_id]].tolist()))
+    tok_info = xgr.TokenizerInfo(eq_data.class_representatives, stop_token_ids=stop_cls)
+    compiled = xgr.GrammarCompiler(tok_info, max_threads=1).compile_grammar(grammar)
+    proc = XgrammarProcessor(
+        tokenizer.eos_token_id, mt,
+        xgr.BatchGrammarMatcher(max_threads=1),
+        [xgr.GrammarMatcher(compiled) for _ in range(batch_size)],
+    )
+    return proc, mt
+
+
+def _raw_masked(raw_batch, raw_matcher, n_tokens: int) -> torch.Tensor:
+    """Boolean (n_tokens,) mask of disallowed tokens for a single raw matcher."""
+    logits_r = torch.zeros(1, n_tokens)
+    bitmask = xgr.allocate_token_bitmask(1, n_tokens)
+    raw_batch.batch_fill_next_token_bitmask([raw_matcher], bitmask)
+    xgr.apply_token_bitmask_inplace(logits_r, bitmask)
+    return logits_r[0] == float("-inf")
+
+
 def _make_raw_xgr(grammar: str, raw_vocab: list[bytes], eos_token_id: int):
     tok_info = xgr.TokenizerInfo(raw_vocab, stop_token_ids=[eos_token_id])
     compiled = xgr.GrammarCompiler(tok_info, max_threads=1).compile_grammar(grammar)
@@ -192,6 +214,75 @@ def test_multi_step_byte_identical(grammar, n_steps, _id, tokenizer, raw_vocab):
     proc, _ = _make_cfgzip_proc(grammar, tokenizer, eq)
     raw_batch, raw_matcher = _make_raw_xgr(grammar, raw_vocab, tokenizer.eos_token_id)
     _compare_steps(proc, raw_batch, raw_matcher, n_steps=n_steps)
+
+
+@pytest.mark.parametrize("batch_size", [2, 3])
+def test_batch_masks_match_raw(batch_size, tokenizer, raw_vocab):
+    """batch_size > 1: every row masks byte-identically to raw XGrammar at every step.
+
+    Regression gate for the batch>1 fix — a stale ``_live_batches`` attribute would
+    raise AttributeError on the first step here (as it does at batch_size=1).
+    """
+    grammar = _GRAMMAR_KV
+    n_steps = 5
+    eq = preprocess(grammar, tokenizer, num_workers=1)
+    proc, mt = _make_cfgzip_proc_batch(grammar, tokenizer, eq, batch_size)
+    raw_batch, raw_matcher = _make_raw_xgr(grammar, raw_vocab, tokenizer.eos_token_id)
+    n_tokens = mt.n_tokens
+
+    input_ids = torch.zeros(batch_size, 1, dtype=torch.long)  # step 0 ignores this
+    for step in range(n_steps):
+        logits_c = torch.zeros(batch_size, n_tokens, device=mt.class_mask.device, dtype=mt.logit_dtype)
+        proc(input_ids, logits_c)
+
+        masked_r = _raw_masked(raw_batch, raw_matcher, n_tokens)
+        for row in range(batch_size):
+            masked_c = logits_c.cpu().float()[row] == float("-inf")
+            assert torch.equal(masked_c, masked_r), f"batch={batch_size} step={step} row={row}"
+
+        allowed = (~masked_r).nonzero().flatten().tolist()
+        non_eos = [t for t in allowed if t != proc.eos_token_id]
+        assert non_eos, f"step {step}: grammar terminated before {n_steps} steps"
+        chosen = non_eos[0]
+
+        raw_batch.batch_accept_token([raw_matcher], [chosen])
+        input_ids = torch.full((batch_size, 1), chosen, dtype=torch.long)
+
+
+def test_batch_subset_live_after_eos(tokenizer, raw_vocab):
+    """When one sequence hits EOS mid-batch, the remaining live rows still mask correctly.
+
+    Exercises the subset-live path (``indices`` shorter than ``batch_size``) that the
+    ``mask_logits_inplace`` broadcasting bug corrupted: a wrong ``torch.where`` value
+    operand raises a shape/broadcast error the moment the live set shrinks.
+    """
+    grammar = "root ::= [a-z]+"
+    eq = preprocess(grammar, tokenizer, num_workers=1)
+    batch_size, dead_row, n_steps = 3, 1, 5
+    proc, mt = _make_cfgzip_proc_batch(grammar, tokenizer, eq, batch_size)
+    raw_batch, raw_matcher = _make_raw_xgr(grammar, raw_vocab, tokenizer.eos_token_id)
+    n_tokens, eos = mt.n_tokens, tokenizer.eos_token_id
+
+    input_ids = torch.zeros(batch_size, 1, dtype=torch.long)  # step 0: all rows live
+    for step in range(n_steps):
+        logits_c = torch.zeros(batch_size, n_tokens, device=mt.class_mask.device, dtype=mt.logit_dtype)
+        proc(input_ids, logits_c)
+
+        masked_r = _raw_masked(raw_batch, raw_matcher, n_tokens)
+        # dead_row drops out from step 1 on; the still-live rows must track raw exactly.
+        live_rows = range(batch_size) if step == 0 else [0, 2]
+        for row in live_rows:
+            masked_c = logits_c.cpu().float()[row] == float("-inf")
+            assert torch.equal(masked_c, masked_r), f"step={step} row={row}"
+
+        allowed = (~masked_r).nonzero().flatten().tolist()
+        non_eos = [t for t in allowed if t != eos]
+        assert non_eos, f"step {step}: grammar terminated before {n_steps} steps"
+        chosen = non_eos[0]
+
+        raw_batch.batch_accept_token([raw_matcher], [chosen])
+        input_ids = torch.full((batch_size, 1), chosen, dtype=torch.long)
+        input_ids[dead_row, -1] = eos  # row 1 finishes after step 0
 
 
 def test_save_load_roundtrip(eq_alpha, tmp_path):

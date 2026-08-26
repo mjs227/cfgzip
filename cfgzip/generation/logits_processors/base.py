@@ -23,18 +23,18 @@ class BaseProcessor(LogitsProcessor, ABC):
 
     def __init__(self, eos_token_id: int, mask_translator: MaskTranslator):
         self.mask_translator, self.eos_token_id = mask_translator, eos_token_id
-        self._live_batches = list(range(self.mask_translator.batch_size))
+        self._live_batch_idxs = list(range(self.mask_translator.batch_size))
         self._step_gt_0 = False
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         if self._step_gt_0:  # update MaskTranslator with tokens from prev. step
-            self._live_batches = [i for i in self._live_batches if input_ids[i, -1] != self.eos_token_id]
+            self._live_batch_idxs = [i for i in self._live_batch_idxs if input_ids[i, -1] != self.eos_token_id]
 
-            if self._live_batches:
+            if self._live_batch_idxs:
                 if not self.accept_tokens(input_ids):
                     raise RuntimeError(
                         "grammar rejected a generated token; the model produced a token that "
-                        "violates the grammar constraints at this step"
+                        "violates the grammar constraints at this step (this is unexpected behavior)"
                     )
             else:
                 return scores
@@ -42,7 +42,7 @@ class BaseProcessor(LogitsProcessor, ABC):
             self._step_gt_0 = True
 
         self.update_class_mask_inplace()
-        self.mask_translator.mask_logits_inplace(scores, indices=self._live_batches)
+        self.mask_translator.mask_logits_inplace(scores, indices=self._live_batch_idxs)
 
         return scores
 
@@ -58,7 +58,7 @@ class BaseProcessor(LogitsProcessor, ABC):
         """Fill ``self.mask_translator.class_mask`` with the allowed-class bitmask.
 
         Called once per decode step before logit masking. Must update the mask
-        in-place for all indices in ``self._live_batches``.
+        in-place for all indices in ``self._live_batch_idxs``.
         """
         pass
 
