@@ -4,6 +4,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-26
+
+### Fixed
+- batch_size > 1 inference bug in `XgrammarProcessor`
+
 ## [0.1.0] - 2026-05-28
 
 Initial release.
@@ -17,5 +22,6 @@ Initial release.
 - `BaseProcessor`: abstract base defining the extension contract for future engines; super of `XgrammarProcessor`
 - Grammars in GBNF; requires Python >= 3.10; optional `[xgrammar]` extra for the generation backend.
 
-[Unreleased]: https://github.com/mjs227/cfgzip/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mjs227/cfgzip/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/mjs227/cfgzip/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mjs227/cfgzip/releases/tag/v0.1.0
