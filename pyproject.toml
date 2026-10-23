@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
 
 [project]
 name = "cfgzip"
@@ -29,8 +29,10 @@ dev = [
 Homepage = "https://github.com/mjs227/cfgzip"
 Repository = "https://github.com/mjs227/cfgzip"
 
-[tool.hatch.version]
-path = "cfgzip/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["cfgzip"]
+[tool.maturin]
+bindings = "bin"
+python-packages = ["cfgzip"]
+exclude = [
+    { path = "MAINTAINING.md", format = "sdist" },
+    { path = "dist/**/*", format = "sdist" },
+]

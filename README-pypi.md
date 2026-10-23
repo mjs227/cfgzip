@@ -10,4 +10,8 @@ XGrammar2 alone, and **lossless** — outputs are byte-identical to the unmodifi
 pip install "cfgzip[xgrammar]"
 ```
 
+Installing compiles the Rust `cfgzip-preprocess` CLI from source (Rust is downloaded automatically if missing) and
+needs a C compiler: `gcc` on Linux, the Xcode Command Line Tools on macOS, or the Visual Studio C++ Build Tools on
+Windows.
+
 **Full documentation:** https://github.com/mjs227/cfgzip

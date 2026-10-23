@@ -6,6 +6,7 @@ __pycache__/
 *.pkl
 build/
 dist/
+target/
 *.egg-info/
 .venv/
 MAINTAINING.md

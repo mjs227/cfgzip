@@ -1,5 +1,6 @@
 
 import re
+import warnings
 import torch
 from transformers import PreTrainedTokenizer
 from cfgzip.utils import EquivalenceClassData
@@ -42,7 +43,13 @@ def preprocess(
         use_tqdm: bool = False,
         num_workers: int = 1
 ) -> EquivalenceClassData:
-    """Compute token equivalence classes for a (grammar, tokenizer) pair.
+    """
+    Compute token equivalence classes for a (grammar, tokenizer) pair.
+
+    Deprecated: the pure-Python preprocessor is deprecated in favour of the
+    Rust ``cfgzip-preprocess`` CLI, which is installed with this package and
+    writes the same on-disk format (load it with
+    :meth:`EquivalenceClassData.load`).
 
     This is the offline preprocessing step. Save the result with
     :meth:`EquivalenceClassData.save` and reload it at generation time with
@@ -69,6 +76,11 @@ def preprocess(
     Returns:
         :class:`EquivalenceClassData` with the computed equivalence classes.
     """
+    warnings.warn(
+        "cfgzip.preprocess() is deprecated; use the `cfgzip-preprocess` CLI instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     cfg, nfa_grammar, preterminals, terminal_labels = parse_cfg_str(grammar_str, start_symbol=start_symbol)
     normed_cfg = normalize_cfg(cfg, nfa_grammar, terminal_labels)
 

@@ -1,5 +1,7 @@
 
-__version__ = "0.1.1"
+from importlib.metadata import version as _version
+
+__version__ = _version("cfgzip")
 
 from cfgzip.preprocessing import preprocess
 from cfgzip.utils import EquivalenceClassData

@@ -31,11 +31,17 @@ the precompute cost every time.
 ## Install
 
 ```bash
-pip install cfgzip               # core: offline preprocessing
+pip install cfgzip               # core: offline preprocessing (cfgzip-preprocess CLI)
 pip install "cfgzip[xgrammar]"   # + the XGrammar generation backend
 ```
 
-Requires Python ≥ 3.10.
+Requires Python ≥ 3.10. Installing compiles the Rust `cfgzip-preprocess` CLI from source and puts it on your `PATH`; 
+this takes a minute or two. If no Rust toolchain (`cargo`) is found, one is downloaded automatically for the build. 
+The build also needs a C compiler:
+
+- **Linux:** `gcc`/`cc` (e.g. `build-essential` on Debian/Ubuntu), usually already installed.
+- **macOS:** the Xcode Command Line Tools (`xcode-select --install`).
+- **Windows:** the [Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
 
 ## Quickstart
 
@@ -44,23 +50,47 @@ pair, and an **online** step, where a third-party grammar engine does the heavy 
 
 ### 1. Offline compression
 
-```python
-from transformers import AutoTokenizer
-from cfgzip import preprocess
+Write the grammar to a file, e.g. `arithmetic.gbnf`:
 
-tokenizer = AutoTokenizer.from_pretrained('gpt2')
-grammar = """\
+```gbnf
 root   ::= expr
 expr   ::= term (("+" | "-") term)*
 term   ::= factor (("*" | "/") factor)*
 factor ::= [0-9]+ | "(" expr ")"
-"""
-
-# eq is an EquivalenceClassData object: we can save it
-# to disk (like we did here) and/or just use it directly
-eq = preprocess(grammar, tokenizer, num_workers=4)
-eq.save('cfgzip_data/arithmetic')
 ```
+
+then run the `cfgzip-preprocess` CLI on it:
+
+```bash
+cfgzip-preprocess \
+  --model-id gpt2 \
+  --grammar-file arithmetic.gbnf \
+  --output cfgzip_data/arithmetic \
+  --num-threads 4
+```
+
+This writes the equivalence classes to `cfgzip_data/arithmetic` (which must be empty or not yet exist); load them with 
+`EquivalenceClassData.load()`, or pass the directory straight to `XgrammarProcessor` (below). For gated HuggingFace 
+models, set `HF_TOKEN` or pass `--hf-token`.
+
+Useful options:
+
+- `--model-id`: HuggingFace model id whose `tokenizer.json` should be used.
+- `--grammar-file`: path to a GBNF grammar file.
+- `--output`: empty or non-existent directory where artifacts will be written.
+- `--start-symbol`: grammar start rule, default `root`.
+- `--n-logits`: override the output logit vocabulary size.
+- `--ignore-range START..END`: exclude token ids, useful for special tokens.
+- `--skip-null-bytes`: put tokens containing `\x00` in singleton classes.
+- `--skip-repeat-bytes`: put tokens containing a repeated decoded-byte run in singleton classes instead of processing 
+  them through the grammar. This is a conservative preprocessing/runtime tradeoff for low-entropy tokenizer tokens such 
+  as long runs of spaces.
+- `--skip-repeat-min-run`: minimum repeated-byte run length for `--skip-repeat-bytes`, default `4`.
+- `--num-threads`: worker thread count for token traversal.
+- `--cache-dir`: HuggingFace asset cache directory.
+- `--no-progress`: hide progress bars.
+
+The pure-Python `preprocess()` function is still available, but is **deprecated** in favour of `cfgzip-preprocess`.
 
 ### 2. Online inference
 
@@ -71,6 +101,7 @@ straight into `model.generate`:
 from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessorList
 from cfgzip import XgrammarProcessor
 
+grammar = open('arithmetic.gbnf').read()
 tokenizer = AutoTokenizer.from_pretrained('gpt2')
 model = AutoModelForCausalLM.from_pretrained('gpt2')
 
@@ -112,25 +143,26 @@ once with the same grammar.
 
 Grammars are written in **GBNF** (GGML BNF) — the grammar notation used by 
 [llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) and XGrammar2. The same grammar 
-string drives both the offline `preprocess` step and online generation; see the linked guide for the full syntax.
+string drives both the offline `cfgzip-preprocess` step and online generation; see the linked guide for the full syntax.
 
 Two CFGzip-specific constraints:
 
 - CFGzip parses **core GBNF**; a few advanced constructs (e.g. `{m,n}` repetition counts) aren't supported yet.
-- The start rule must be named `root` (or pass `start_symbol=...` to `preprocess`), and the start symbol may **not** 
+- The start rule must be named `root` (or pass `--start-symbol` to `cfgzip-preprocess`), and the start symbol may **not** 
   appear in any rule body — keep the recursion on an inner non-terminal, as in the `root ::= expr` quickstart grammar 
   above.
 
 ## Scope & limitations
 
 - **Engine backend:** v0.1.0 supports **XGrammar2 only**. `BaseProcessor` defines the contract for adding support for additional engines. We plan to support llguidance and transformers-cfg in later versions.
-- **CFG notation:** similarly, `preprocess()` only supports the GBNF grammar specification notation used by XGrammar2. Support for additional specification notations (e.g. Lark) is planned alongside support for decoding engines that use them.
+- **CFG notation:** similarly, `cfgzip-preprocess` only supports the GBNF grammar specification notation used by XGrammar2. Support for additional specification notations (e.g. Lark) is planned alongside support for decoding engines that use them.
 
 ## Public API
 
 | Name | Description                                                                                        |
 |---|----------------------------------------------------------------------------------------------------|
-| `preprocess` | Computes equivalence classes for a `(grammar, tokenizer)` pair (offline).                          |
+| `cfgzip-preprocess` | CLI; computes equivalence classes for a `(grammar, tokenizer)` pair (offline).                  |
+| `preprocess` | **Deprecated** pure-Python equivalent of `cfgzip-preprocess`.                                      |
 | `EquivalenceClassData` | The precomputed equivalence class data; `.save` / `.load` / `.to`.                                 |
 | `XgrammarProcessor` | XGrammar wrapper and `LogitsProcessor`; `.auto_pipeline` / `.load_and_compile` / `.from_compiled`. |
 | `MaskTranslator` | Expands a class-level mask back to the full token vocabulary in-place.                             |
