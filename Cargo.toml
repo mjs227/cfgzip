@@ -1,0 +1,29 @@
+[package]
+name = "cfgzip-preprocess"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+ahash = "0.8"
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+hf-hub = { version = "0.4", default-features = false, features = ["ureq"] }
+indicatif = "0.18"
+rayon = "1.10"
+regex = "1.13"
+regex-automata = { version = "0.4", features = ["syntax", "nfa-thompson"] }
+serde_bytes = "0.11"
+serde-pickle = "1.2"
+serde_json = "1.0"
+tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
+zip = { version = "2.4", default-features = false }
+
+[dev-dependencies]
+tempfile = "3.13"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
