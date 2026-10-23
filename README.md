@@ -3,7 +3,7 @@
 **Lossless token vocabulary compression for fast CFG-constrained decoding.**
 
 CFGzip is an offline pre-computation technique that pairs with a constrained decoding engine (e.g. XGrammar2), to 
-massively speed up the engine's inference compute time: generation with CFGzip+XGrammar2 is **up to 7.5x faster** than 
+massively speed up the engine's inference compute time: generation with CFGzip+XGrammar2 is **up to 75x faster** than 
 the SoTA XGrammar2 alone. CFGzip compression is also **lossless**: outputs are byte-identical to the unmodified grammar 
 engine.
 

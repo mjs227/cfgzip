@@ -4,6 +4,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-23
+
+### Added
+- `cfgzip-preprocess`: Rust CLI for offline preprocessing; writes the same `tc.pt` / `inv.pt` / `cr.pkl` files as
+  `EquivalenceClassData.save()`, so its output loads with `EquivalenceClassData.load()`.
+
+### Changed
+- Installing now compiles the Rust CLI from source (build backend: maturin)
+
+### Deprecated
+- `preprocess()`: use `cfgzip-preprocess` instead
+
 ## [0.1.1] - 2026-08-26
 
 ### Fixed
